@@ -1634,7 +1634,7 @@ MASK_LEFT_1 = np.array(
         True,
         True,
         False, #37
-        False,
+        True,
         False,
         False,
         False,
@@ -1660,7 +1660,7 @@ MASK_RIGHT_1 = np.array(
         False,
         False,
         False, #27
-        False,
+        True,
         False,
         False,
         False,

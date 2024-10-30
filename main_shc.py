@@ -536,7 +536,7 @@ def main(tag="0"):
         # np.count_nonzero(edge_mask[:, :, 1] == 31)
 
         # edge_mask = cv2.imread(f"seg/valid/label/{tag}-{phtype.value}.png", 0)
-        edge_mask = np.load(f'new1/{tag}/output_npy/{phtype.value}.npy')
+        edge_mask = np.load(f'二次交付/{tag}/output_npy/{phtype.value}.npy')
         # edge_mask = np.load(f'gt/{tag}/{phtype.value}.npy')
         # 上视图和下视图需要翻转
         if phtype == PHOTO.UPPER or phtype == PHOTO.LOWER:
@@ -547,10 +547,10 @@ def main(tag="0"):
         edge_mask[edge_mask[:, :, 1] == 27, 0] = 0
         edge_mask[edge_mask[:, :, 1] == 37, 0] = 0
         edge_mask[edge_mask[:, :, 1] == 47, 0] = 0
-        if phtype == PHOTO.LEFT:
-            edge_mask[edge_mask[:, :, 1] == 41, 0] = 0
-        if phtype == PHOTO.RIGHT:
-            edge_mask[edge_mask[:, :, 1] == 31, 0] = 0
+        # if phtype == PHOTO.LEFT:
+        #     edge_mask[edge_mask[:, :, 1] == 41, 0] = 0
+        # if phtype == PHOTO.RIGHT:
+        #     edge_mask[edge_mask[:, :, 1] == 31, 0] = 0
         if phtype == PHOTO.FRONTAL:
             edge_mask[edge_mask[:, :, 1] == 15, 0] = 0
             edge_mask[edge_mask[:, :, 1] == 16, 0] = 0
@@ -657,9 +657,9 @@ if __name__ == "__main__":
     # tags = ["83", "100", "108", "125", "134", "143", "402", "404", "418", "424", "432"]
     # tags = ["51", "54", "89", "419", "427", "437", "457", "465"]
     # tags = ["83", "100", "108", "125", "134", "143", "402", "404", "418", "424", "432", "51", "54", "89", "419", "427", "437", "457", "465"]
-    tags = os.listdir('new1/')
+    tags = os.listdir('二次交付/')
     for tag in tags:
-        try:
-            main(tag)
-        except:
-            l=1
+        # try:
+        main(tag)
+        # except:
+        #     l=1

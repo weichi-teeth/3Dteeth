@@ -18,7 +18,7 @@ from scipy.spatial.transform import Rotation as RR
 from shapely.geometry import MultiLineString, Point
 from shapely.ops import polygonize, unary_union
 
-from const_new_shc import PHOTO
+from const_new_wxc import PHOTO
 
 print = functools.partial(print, flush=True)
 
@@ -43,7 +43,7 @@ class EMOpt5Views(object):
     ) -> None:
         self.edgeMasks_sizes = edgeMasks_sizes
         # self.pad_width = pad_width
-        self.photoTypes = sorted(photoTypes, key=lambda x: x.value)
+        self. photoTypes = sorted(photoTypes, key=lambda x: x.value)
         assert self.photoTypes == [
             PHOTO.UPPER,
             PHOTO.LOWER,

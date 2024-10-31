@@ -2,9 +2,9 @@ import functools
 import glob
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"  # run on CPU
-import sys
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # run on CPU
 
+import sys
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,23 +14,18 @@ import ray
 
 import pcd_mesh_utils as pm_util
 import recons_eval_metric as metric
-from const_new import *
-from emopt5views import EMOpt5Views
+from const_new_wxc import *
+from emopt5views_wxc import EMOpt5Views
 from seg.seg_const import IMG_SHAPE
 # from seg.seg_model import ASPP_UNet
-from seg.utils import predict_teeth_contour, gt_teeth_contour
+from seg.utils_wxc import predict_teeth_contour, gt_teeth_contour
 import cv2
 from PIL import Image
 
 from pcd_mesh_utils import farthestPointDownSample
-
-NAME_WHO = "wxc/demo/500RealCases1/"
-
-TEMP_DIR = r"./demo/_temp/"
-os.makedirs(TEMP_DIR, exist_ok=True)
+import time
 
 NUM_CPUS = psutil.cpu_count(logical=False)
-
 print = functools.partial(print, flush=True)
 
 
@@ -70,15 +65,15 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
 
     for phtype in PHOTO_TYPES:
         canvas, canvas_gt, canvas_pred = emopt.showEdgeMaskPredictionWithGroundTruth(photoType=phtype)
-        canvas_gt = canvas_gt.reshape((600, 800)).astype(np.uint8)
+        canvas_gt = canvas_gt.astype(np.uint8)[:, :, 0]
         canvas_gt = np.stack((canvas_gt, canvas_gt, canvas_gt), axis=-1)
         canvas_gt_img = Image.fromarray(canvas_gt)
         # canvas_gt_img.save(f"canvas_gt_{str(phtype.value)}.png")
         canvas_pred = (canvas_pred * 255)
-        canvas_pred = np.stack((canvas_pred, np.zeros((600, 800)), np.zeros((600, 800))), axis=-1).astype(np.uint8)
+        canvas_pred = np.stack((canvas_pred, np.zeros((canvas_pred.shape[0], canvas_pred.shape[1])), np.zeros((canvas_pred.shape[0], canvas_pred.shape[1]))), axis=-1).astype(np.uint8)
         canvas_pred = canvas_pred + canvas_gt
         canvas_pred_img = Image.fromarray(canvas_pred)
-        canvas_pred_img.save(f"{NAME_WHO}{tag}/canvas_{tag}_0_{str(phtype.value)}.png")
+        canvas_pred_img.save(f"{PATH_ROOT}/int/{tag}/canvas_{tag}_0_{str(phtype.value)}.png")
 
     min_e_loss = emopt.get_e_loss()
     optParamDict = emopt.get_current_e_step_result()
@@ -88,11 +83,6 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
 
     # emopt.save_expectation_step_result(stage0initMatFile) # save checkpoint
 
-    maxiter = 20
-    # stageIter = [10, 5, 10]
-    stageIter = [10, 5, 1]
-    # stageIter = [10, 0, 5]
-    # stageIter = [0, 0, 0]
     # stage 0 & 1 optimization
 
     print("-" * 100)
@@ -104,8 +94,8 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
     # emopt.expectation_step_5Views(stage, verbose)
 
     E_loss = []
-    for it in range(stageIter[0]):
-        emopt.maximization_step_5Views(stage, step=-1, maxiter=maxiter, verbose=False)
+    for it in range(max_stage_Iter[1]):
+        emopt.maximization_step_5Views(stage, step=-1, maxiter=max_stage_Iter[0], verbose=False)
         print("M-step loss: {:.4f}".format(emopt.loss_maximization_step))
         emopt.expectation_step_5Views(stage, verbose)
         e_loss = emopt.get_e_loss()
@@ -135,23 +125,23 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
 
     for phtype in PHOTO_TYPES:
         canvas, canvas_gt, canvas_pred = emopt.showEdgeMaskPredictionWithGroundTruth(photoType=phtype)
-        canvas_gt = canvas_gt.reshape((600, 800)).astype(np.uint8)
+        canvas_gt = canvas_gt.astype(np.uint8)[:, :, 0]
         canvas_gt = np.stack((canvas_gt, canvas_gt, canvas_gt), axis=-1)
         canvas_gt_img = Image.fromarray(canvas_gt)
         # canvas_gt_img.save(f"canvas_gt_{str(phtype.value)}.png")
         canvas_pred = (canvas_pred * 255)
-        canvas_pred = np.stack((canvas_pred, np.zeros((600, 800)), np.zeros((600, 800))), axis=-1).astype(np.uint8)
+        canvas_pred = np.stack((canvas_pred, np.zeros((canvas_pred.shape[0], canvas_pred.shape[1])), np.zeros((canvas_pred.shape[0], canvas_pred.shape[1]))), axis=-1).astype(np.uint8)
         canvas_pred = canvas_pred + canvas_gt
         canvas_pred_img = Image.fromarray(canvas_pred)
-        canvas_pred_img.save(f"{NAME_WHO}{tag}/canvas_{tag}_1_{str(phtype.value)}.png")
+        canvas_pred_img.save(f"{PATH_ROOT}/int/{tag}/canvas_{tag}_1_{str(phtype.value)}.png")
 
     skipStage1Flag = False
     print("-" * 100)
     print("Start Stage 1.")
 
     stage = 1
-    for it in range(stageIter[1]):
-        emopt.maximization_step_5Views(stage, step=-1, maxiter=maxiter, verbose=False)
+    for it in range(max_stage_Iter[2]):
+        emopt.maximization_step_5Views(stage, step=-1, maxiter=max_stage_Iter[0], verbose=False)
         print("M-step loss: {:.4f}".format(emopt.loss_maximization_step))
         emopt.expectation_step_5Views(stage, verbose)
         e_loss = emopt.get_e_loss()
@@ -188,15 +178,15 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
 
     for phtype in PHOTO_TYPES:
         canvas, canvas_gt, canvas_pred = emopt.showEdgeMaskPredictionWithGroundTruth(photoType=phtype)
-        canvas_gt = canvas_gt.reshape((600, 800)).astype(np.uint8)
+        canvas_gt = canvas_gt.astype(np.uint8)[:, :, 0]
         canvas_gt = np.stack((canvas_gt, canvas_gt, canvas_gt), axis=-1)
         canvas_gt_img = Image.fromarray(canvas_gt)
         # canvas_gt_img.save(f"canvas_gt_{str(phtype.value)}.png")
         canvas_pred = (canvas_pred * 255)
-        canvas_pred = np.stack((canvas_pred, np.zeros((600, 800)), np.zeros((600, 800))), axis=-1).astype(np.uint8)
+        canvas_pred = np.stack((canvas_pred, np.zeros((canvas_pred.shape[0], canvas_pred.shape[1])), np.zeros((canvas_pred.shape[0], canvas_pred.shape[1]))), axis=-1).astype(np.uint8)
         canvas_pred = canvas_pred + canvas_gt
         canvas_pred_img = Image.fromarray(canvas_pred)
-        canvas_pred_img.save(f"{NAME_WHO}canvas_{tag}_2_{str(phtype.value)}.png")
+        canvas_pred_img.save(f"{PATH_ROOT}/int/{tag}/canvas_{tag}_2_{str(phtype.value)}.png")
 
     # Stage = 2 and 3
     print("-" * 100)
@@ -205,11 +195,11 @@ def run_emopt(emopt: EMOpt5Views, verbose: bool = False):
     E_loss = [
         min_e_loss,
     ]
-    for it in range(stageIter[2]):
-        emopt.maximization_step_5Views(stage, step=2, maxiter=maxiter, verbose=False)
-        emopt.maximization_step_5Views(stage, step=3, maxiter=maxiter, verbose=False)
-        emopt.maximization_step_5Views(stage=3, step=-1, maxiter=maxiter, verbose=False)
-        emopt.maximization_step_5Views(stage, step=1, maxiter=maxiter, verbose=False)
+    for it in range(max_stage_Iter[3]):
+        emopt.maximization_step_5Views(stage, step=2, maxiter=max_stage_Iter[0], verbose=False)  # rotVecXYZs
+        emopt.maximization_step_5Views(stage, step=3, maxiter=max_stage_Iter[0], verbose=False)  # scales
+        emopt.maximization_step_5Views(stage=3, step=-1, maxiter=max_stage_Iter[0], verbose=False)  
+        emopt.maximization_step_5Views(stage, step=1, maxiter=max_stage_Iter[0], verbose=False)
         print("M-step loss: {:.4f}".format(emopt.loss_maximization_step))
         emopt.expectation_step_5Views(stage=3, verbose=verbose)
         e_loss = emopt.get_e_loss()
@@ -435,14 +425,31 @@ def read_demo_mesh_vertices_by_FDI_npy(mesh_dir, tag, FDIs):
         mesh_vertices_by_FDI.append(msh2)
     return mesh_vertices_by_FDI
 
+def expand_array(arr):
+    """
+    将(a,b,c)大小的数组扩展成(a2,b2,c)大小的数组，a2为大于等于a且满足a2=3*n(n为整数），b2为大于等于b且满足b2=4*n。
+    """
+    a, b, c = arr.shape  # 获取原始数组的大小
+
+    # 计算满足条件的 a2 和 b2
+    a2 = ((a + 2) // 3) * 3  # 找到大于等于 a 的最近的 3 的倍数
+    b2 = ((b + 3) // 4) * 4  # 找到大于等于 b 的最近的 4 的倍数
+
+    # 创建新的填充数组，并将原数组的值复制到新数组中
+    expanded_arr = np.zeros((a2, b2, c), dtype=arr.dtype)
+    expanded_arr[:a, :b, :] = arr
+
+    return expanded_arr
+
 
 def main(tag="0"):
+    start_time = time.time()
     Mu0, SqrtEigVals, Sigma = loadMuEigValSigma(SSM_DIR, numPC=NUM_PC)
     Mu = Mu0
 
-    dir_Mu2 = "seg/train/500RealCases1/Case" + tag + "/新病例阶段/ExportSTLs/"
-    dir_Mu2_mid = "seg/train/500RealCases1/Case" + tag + "/中期阶段1/ExportSTLs/"
-    file_names = [f'{dir_Mu2}crown{d1}{d2}-ds.npy' for d1 in range(1, 5) for d2 in range(1, 8)]
+    dir_Mu2 = "./seg/train/new_dataset/口腔/20240918STLs/" + tag + "/新病例阶段/ExportSTLs/"
+    dir_Mu2_mid = "./seg/train/new_dataset/口腔/20240918STLs/" + tag + "/中期阶段1/ExportSTLs/"
+    file_names = [f'{dir_Mu2_mid}crown{d1}{d2}-ds.npy' for d1 in range(1, 5) for d2 in range(1, 8)]
     data_list = []
     for file_name in file_names:
         try:
@@ -462,40 +469,6 @@ def main(tag="0"):
     Mu2_2[:, :, 0] = -Mu2[:, :, 0]
     Mu2_2[:, :, 1] = -Mu2[:, :, 2]
     Mu2_2[:, :, 2] = -Mu2[:, :, 1]
-
-    # for i in range(28):
-    #     Mu_mean[i, 0] = np.mean(Mu[i, :, 0])
-    #     Mu_mean[i, 1] = np.mean(Mu[i, :, 1])
-    #     Mu_mean[i, 2] = np.mean(Mu[i, :, 2])
-    # for i in range(28):
-    #     Mu2_mean[i, 0] = np.mean(Mu2_2[i, :, 0])
-    #     Mu2_mean[i, 1] = np.mean(Mu2_2[i, :, 1])
-    #     Mu2_mean[i, 2] = np.mean(Mu2_2[i, :, 2])
-    # for i in range(28):
-    #     Mu_vec[i, 0] = Mu_mean[i, 0] - Mu2_mean[i, 0]
-    #     Mu_vec[i, 1] = Mu_mean[i, 1] - Mu2_mean[i, 1]
-    #     Mu_vec[i, 2] = Mu_mean[i, 2] - Mu2_mean[i, 2]
-    # for i in range(28):
-    #     Mu3[i, :, 0] = Mu2_2[i, :, 0] + Mu_vec[i, 0]
-    #     Mu3[i, :, 1] = Mu2_2[i, :, 1] + Mu_vec[i, 1]
-    #     Mu3[i, :, 2] = Mu2_2[i, :, 2] + Mu_vec[i, 2]
-    # Mu = Mu3
-
-    # Mu_mean_upper = np.array([np.mean(Mu[:14,:,0]),np.mean(Mu[:14,:,1]),np.mean(Mu[:14,:,2])])
-    # Mu_mean_lower = np.array([np.mean(Mu[14:, :, 0]), np.mean(Mu[14:, :, 1]), np.mean(Mu[14:, :, 2])])
-    # Mu2_2_mean_upper = np.array([np.mean(Mu2_2[:14,:,0]),np.mean(Mu2_2[:14,:,1]),np.mean(Mu2_2[:14,:,2])])
-    # Mu2_2_mean_lower = np.array([np.mean(Mu2_2[14:, :, 0]), np.mean(Mu2_2[14:, :, 1]), np.mean(Mu2_2[14:, :, 2])])
-    # Mu_vec_upper = Mu_mean_upper - Mu2_2_mean_upper
-    # Mu_vec_lower = Mu_mean_lower - Mu2_2_mean_lower
-    # for i in range(14):
-    #     Mu3[i, :, 0] = Mu2_2[i, :, 0] + Mu_vec_upper[0]
-    #     Mu3[i, :, 1] = Mu2_2[i, :, 1] + Mu_vec_upper[1]
-    #     Mu3[i, :, 2] = Mu2_2[i, :, 2] + Mu_vec_upper[2]
-    # for i in range(14,28):
-    #     Mu3[i, :, 0] = Mu2_2[i, :, 0] + Mu_vec_lower[0]
-    #     Mu3[i, :, 1] = Mu2_2[i, :, 1] + Mu_vec_lower[1]
-    #     Mu3[i, :, 2] = Mu2_2[i, :, 2] + Mu_vec_lowerZ[2]
-    # Mu = Mu3
 
     Mu_mean = np.array([np.mean(Mu[:, :, 0]), np.mean(Mu[:, :, 1]), np.mean(Mu[:, :, 2])])
     Mu2_2_mean = np.array([np.mean(Mu2_2[:, :, 0]), np.mean(Mu2_2[:, :, 1]), np.mean(Mu2_2[:, :, 2])])
@@ -521,7 +494,7 @@ def main(tag="0"):
     ScaleCovMat = np.load(
         os.path.join(REGIS_PARAM_DIR, "ScaleCovMat.npy")
     )  # Covariance matrix of scales for each tooth, shape=(28,28)
-    tooth_exist_mask = TOOTH_EXIST_MASK[tag]
+    tooth_exist_mask = TOOTH_EXIST_MASK['1']
     LogFile = os.path.join(TEMP_DIR, "Tag={}.log".format(tag))
     if os.path.exists(LogFile):
         os.remove(LogFile)
@@ -529,31 +502,76 @@ def main(tag="0"):
     sys.stdout = log
     # teeth boundary segmentation model
     # weight_ckpt = r".\seg\weights\weights-teeth-boundary-model.h5"
-    weight_ckpt = r"model_weights.h5"
+    # weight_ckpt = r"model_weights.h5"
     # weight_ckpt = r"./seg/weights/model_weights.h5"
     # weight_ckpt = r"seg\weights\weights-teeth-boundary-model.h5"
     # model = ASPP_UNet(IMG_SHAPE, filters=[16, 32, 64, 128, 256])
     # model.load_weights(weight_ckpt)
     print('hi3')
     # 保存模型预测轮廓线图
-    if not os.path.exists(f"{NAME_WHO}{tag}"):
-        os.makedirs(f"{NAME_WHO}{tag}")
+    if not os.path.exists(f"{PATH_ROOT}/int/{tag}"):
+        os.makedirs(f"{PATH_ROOT}/int/{tag}")
     # predcit teeth boundary in each photo
     edgeMasks = []
+    edgeMasks_sizes = []
     for phtype in PHOTO_TYPES:
         print(phtype)
-        imgfile = os.path.join(PHOTO_DIR, f"{tag}-{phtype.value}.png")
+        # imgfile = os.path.join(PHOTO_DIR, f"{tag}-{phtype.value}.png") 
 
         # edge_mask = predict_teeth_contour(
         #     model, imgfile, resized_width=RECONS_IMG_WIDTH
         # )  # resize image to (800,~600)
         # cv2.imwrite(f"{tag}-{phtype.value}-predict.png", edge_mask)
 
-        edge_mask = cv2.imread(f"seg/valid/label/{tag}-{phtype.value}.png", 0)
-        edge_mask = gt_teeth_contour(edge_mask)
-        cv2.imwrite(f"{NAME_WHO}{tag}/{tag}-{phtype.value}-label.png", edge_mask)
+        # np.count_nonzero(edge_mask[:, :, 1] == 31)
 
+        # edge_mask = cv2.imread(f"seg/valid/label/{tag}-{phtype.value}.png", 0)
+        edge_mask = np.load(f'二次交付/{tag}/output_npy/{phtype.value}.npy')
+        # edge_mask = np.load(f'gt/{tag}/{phtype.value}.npy')
+        # 上视图和下视图需要翻转
+        if phtype == PHOTO.UPPER or phtype == PHOTO.LOWER:
+            edge_mask = np.flipud(edge_mask)
+        # 上视图不需要牙齿17，27；下视图不需要牙齿37，47；左视图不需要牙齿41，37；右视图不需要牙齿31，47；
+        # 正视图不需要牙齿15，16，17，25，26，27，35，36，37，45，46，47；
+        edge_mask[edge_mask[:, :, 1] == 17, 0] = 0
+        edge_mask[edge_mask[:, :, 1] == 27, 0] = 0
+        edge_mask[edge_mask[:, :, 1] == 37, 0] = 0
+        edge_mask[edge_mask[:, :, 1] == 47, 0] = 0
+        if phtype == PHOTO.LEFT:
+            edge_mask[edge_mask[:, :, 1] == 41, 0] = 0
+        if phtype == PHOTO.RIGHT:
+            edge_mask[edge_mask[:, :, 1] == 31, 0] = 0
+        if phtype == PHOTO.FRONTAL:
+            edge_mask[edge_mask[:, :, 1] == 15, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 16, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 25, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 26, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 35, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 36, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 45, 0] = 0
+            edge_mask[edge_mask[:, :, 1] == 46, 0] = 0
+
+
+        # 扩充轮廓线图，增加固定的空白边缘
+        pad_width = 200
+        edge_mask = np.pad(edge_mask, ((pad_width, pad_width), (pad_width, pad_width), (0, 0)), mode='constant', constant_values=0)
+
+        # 扩充轮廓线图，增加空白边缘，满足长宽比例为800x600
+        edge_mask = expand_array(edge_mask)
+
+        edge_mask = edge_mask[:, :, 0] * 255
+
+        # 二值图像骨架提取以及resize成(600,800)大小
+        edge_mask = gt_teeth_contour(edge_mask)
+
+        # 图像的大小
+
+        size = (edge_mask.shape[0], edge_mask.shape[1])
+
+        cv2.imwrite(f"{PATH_ROOT}/int/{tag}/{tag}-{phtype.value}-label.png", edge_mask)
         edgeMasks.append(edge_mask)
+        edgeMasks_sizes.append(size)
+
         # plt.imshow(edge_mask)
         # plt.show()
     print('hi4')
@@ -573,11 +591,12 @@ def main(tag="0"):
         mesh_dir=dir_Mu2_mid, tag=tag, FDIs=np.array(LOWER_INDICES)[mask_l]
     )
     print('hi5')
+    print(PHOTO_TYPES)
     # run deformation-based 3d reconstruction
     emopt = EMOpt5Views(
         edgeMasks,
         PHOTO_TYPES,
-        VISIBLE_MASKS[tag],
+        VISIBLE_MASKS["1"],
         tooth_exist_mask,
         Mu,
         Mu_normals,
@@ -587,6 +606,8 @@ def main(tag="0"):
         ScaleCovMat,
         transVecStd,
         rotVecStd,
+        edgeMasks_sizes,
+        # pad_width,
     )
     emopt = run_emopt(emopt)
     demoh5File = os.path.join(DEMO_H5_DIR, f"demo-tag={tag}.h5")
@@ -596,16 +617,16 @@ def main(tag="0"):
     for phtype in PHOTO_TYPES:
         canvas, canvas_gt, canvas_pred = emopt.showEdgeMaskPredictionWithGroundTruth(photoType=phtype)
         try:
-            canvas_gt = canvas_gt.reshape((600, 800))
+            canvas_gt = canvas_gt.astype(np.uint8)[:, :, 0]
             canvas_gt = np.stack((canvas_gt, canvas_gt, canvas_gt), axis=-1)
             canvas_gt_img = Image.fromarray(canvas_gt)
             canvas_gt_img.save(f"canvas_gt_{str(phtype.value)}.png")
 
             canvas_pred = (canvas_pred * 255)
-            canvas_pred = np.stack((canvas_pred, np.zeros((600, 800)), np.zeros((600, 800))), axis=-1).astype(np.uint8)
+            canvas_pred = np.stack((canvas_pred, np.zeros((canvas_pred.shape[0], canvas_pred.shape[1])), np.zeros((canvas_pred.shape[0], canvas_pred.shape[1]))), axis=-1).astype(np.uint8)
             canvas_pred = canvas_pred + canvas_gt
             canvas_pred_img = Image.fromarray(canvas_pred)
-            canvas_pred_img.save(f"{NAME_WHO}Case{tag}/canvas_{tag}_pred_{str(phtype.value)}.png")
+            canvas_pred_img.save(f"{PATH_ROOT}/int/{tag}/canvas_{tag}_pred_{str(phtype.value)}.png")
 
         except:
             l = 1
@@ -616,22 +637,22 @@ def main(tag="0"):
                FDIs_lower=np.array(LOWER_INDICES)[mask_l], mask_u=mask_u, mask_l=mask_l, tag=tag)
 
     print('end')
+    end_time = time.time()
+    print("代码运行时间为：", end_time - start_time, "秒")
     log.close()
-    # print('end')
 
 
 if __name__ == "__main__":
-    ray.init(num_cpus=4, num_gpus=2)
-    tags = list(range(2,101))
-    for tag in tags:
-        main(str(tag))
-    # file_root = "seg/train/new_dataset/口腔/20240918STLs/"
-    # try:
-    #     tag_list = [f.name for f in os.scandir(file_root) if f.is_dir()]
-    #     print(tag_list)
-    # except Exception as e:
-    #     print(f"Error: {e}")
-    
-    # for tag in tag_list:
+    ray.init(num_cpus=8, num_gpus=1)
+    # tags = ["83", "100", "108", "125", "134", "143", "402", "404", "418", "424", "432", "51", "54", "89", "419", "427", "437", "457", "465"]
+    # tags_list = os.listdir('二次交付')
+    # tags = []
+    # for tag in tags_list:
+    #     if not tag.endswith(".py"):
+    #         tags.append(tag)
+    # print(tags)
+    tag = "C01008094595"
+    main(tag)
+    # for tag in tags:seg/utils_shc.py[]
     #     print(tag)
     #     main(tag)

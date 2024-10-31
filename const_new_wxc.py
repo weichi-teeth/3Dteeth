@@ -1932,19 +1932,35 @@ LOWER_INDICES = [
     47,
 ]  # ignore wisdom teeth
 
+max_stage_Iter_list = [[max, s1, 0, s3] for max in [10, 15, 20, 25, 30, 35, 50]for s1 in [3, 5, 7, 10] for s3 in [3, 5, 7, 10]]
+extent_how = "上限"
 
-SSM_DIR = r"./ssm/eigValVec/"
-REGIS_PARAM_DIR = r"./ssm/cpdGpParams/"
-DEMO_H5_DIR = r"./demo_wxc/h5/"
-DEMO_MESH_DIR = r"./demo_wxc/mesh/"
-DEMO_MESH_DIR2 = r"./demo_wxc/mesh2/"
-DEMO_MESH_ALIGNED_DIR = r"./demo_wxc/mesh_aligned/"
-REF_MESH_DIR = r"./demo_wxc/ref_mesh/"
-VIS_DIR = r"./demo_wxc/visualization"
-PATH_ROOT = r"demo_wxc/"
-TEMP_DIR = r"./demo_wxc/_temp/"
+for max_stage_Iter in max_stage_Iter_list:
+    SSM_DIR = r"./ssm/eigValVec/"
+    REGIS_PARAM_DIR = r"./ssm/cpdGpParams/"
+    DEMO_H5_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/h5/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    DEMO_MESH_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/mesh/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    DEMO_MESH_DIR2 = "./demo_wxc/{}/max{}_{}_{}_{}/mesh2/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    DEMO_MESH_ALIGNED_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/mesh_aligned/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    REF_MESH_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/ref_mesh/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    VIS_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/visualization/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    PATH_ROOT = "demo_wxc/{}/max{}_{}_{}_{}/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+    TEMP_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/_temp/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+
+# max_stage_Iter = [20, 0, 0, 0]
+# extent_how = "下限"
+# SSM_DIR = r"./ssm/eigValVec/"
+# REGIS_PARAM_DIR = r"./ssm/cpdGpParams/"
+# DEMO_H5_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/h5/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# DEMO_MESH_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/mesh/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# DEMO_MESH_DIR2 = "./demo_wxc/{}/max{}_{}_{}_{}/mesh2/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# DEMO_MESH_ALIGNED_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/mesh_aligned/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# REF_MESH_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/ref_mesh/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# VIS_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/visualization/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# PATH_ROOT = "demo_wxc/{}/max{}_{}_{}_{}/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
+# TEMP_DIR = "./demo_wxc/{}/max{}_{}_{}_{}/_temp/".format(extent_how, max_stage_Iter[0], max_stage_Iter[1], max_stage_Iter[2], max_stage_Iter[3])
 
 os.makedirs(DEMO_H5_DIR, exist_ok=True)
 os.makedirs(DEMO_MESH_DIR, exist_ok=True)
 os.makedirs(VIS_DIR, exist_ok=True)
-
+os.makedirs(TEMP_DIR, exist_ok=True)
